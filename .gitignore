@@ -1,0 +1,70 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checkers / linters
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# --- Django ---
+*.log
+local_settings.py
+
+# Django static/media (ignore only if you generate these locally)
+staticfiles/
+media/
+
+# --- Database ---
+db.sqlite3
+*.sqlite3
+
+# --- Poetry ---
+# Keep poetry.lock if you want reproducible builds
+# poetry.lock
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+
+# --- Environment files / secrets ---
+.env
+.env.*
+
+# --- Django collectstatic / compiled assets ---
+*.pot
+*.mo
