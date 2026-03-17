@@ -2,6 +2,8 @@
 
 API REST para reserva/compra de ingressos (projeto de vaga). Stack atual: Django + Django REST Framework + JWT + Postgres + Redis + Docker + Poetry.
 
+> Observação de operação: criação/edição/remoção de **Filmes**, **Salas (Rooms)** e **Sessões** é feita via **Django Admin** (`/admin/`).
+
 ## Pré-requisitos
 
 - Docker Desktop (Windows) com Docker Compose
@@ -75,6 +77,63 @@ docker compose exec web python manage.py createsuperuser
 - JWT refresh: http://localhost:8000/api/auth/refresh/
 - Swagger (se habilitado): http://localhost:8000/api/docs/
 - OpenAPI schema (se habilitado): http://localhost:8000/api/schema/
+
+## Endpoints principais
+
+Auth
+- `POST /api/auth/register/` - cadastro de usuário
+- `POST /api/auth/login/` - obter `access` e `refresh`
+- `POST /api/auth/refresh/` - renovar token `access`
+
+Movies
+- `GET /api/movies/` - listar filmes (paginado)
+- `GET /api/movies/{id}/` - detalhe do filme
+- Operações de criação/edição/remoção são feitas via Django Admin
+
+Sessions / Tickets
+- `GET /api/sessions/` - listar sessões (paginado)
+- `GET /api/movies/{movie_id}/sessions/` - sessões por filme (cacheado)
+- `GET /api/sessions/{session_id}/seats/` - mapa de assentos (cacheado)
+- `POST /api/sessions/{session_id}/seats/{seat_id}/lock/` - reservar assento por 10 min
+- `DELETE /api/sessions/{session_id}/seats/{seat_id}/lock/` - liberar reserva
+- `POST /api/tickets/` - checkout (gera ingresso)
+- `GET /api/me/tickets/?scope=active|history` - ingressos do usuário (paginado)
+
+Admin operations
+- `Movie`, `Room` e `Session`: CRUD exclusivo via Django Admin
+
+## Executar testes
+
+Windows (PowerShell):
+
+```powershell
+docker compose exec -T web python manage.py check
+docker compose exec -T web python manage.py test -v 2
+```
+
+Linux/macOS (bash):
+
+```bash
+docker compose exec -T web python manage.py check
+docker compose exec -T web python manage.py test -v 2
+```
+
+Testes por app:
+
+```bash
+docker compose exec -T web python manage.py test cinema -v 2
+docker compose exec -T web python manage.py test movies -v 2
+docker compose exec -T web python manage.py test users -v 2
+```
+
+## Sanity check de documentação
+
+Verifique se os endpoints de documentação sobem com status `200`:
+
+```powershell
+Invoke-WebRequest http://localhost:8000/api/schema/ -UseBasicParsing
+Invoke-WebRequest http://localhost:8000/api/docs/ -UseBasicParsing
+```
 
 ## Logs
 
