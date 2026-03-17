@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'movies',
+    'users',
+    'cinema'
 ]
 
 MIDDLEWARE = [
