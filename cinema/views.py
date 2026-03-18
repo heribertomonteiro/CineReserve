@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -6,16 +6,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.db import transaction, IntegrityError
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import ( OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer,)
 from .models import Session, Seat, Ticket
-from .cache_utils import (
-    MOVIE_SESSIONS_CACHE_TTL,
-    invalidate_movie_sessions_cache,
-    invalidate_session_seat_map_cache,
-    movie_sessions_cache_key,
-    SEAT_MAP_CACHE_TTL,
-    session_seat_map_cache_key,
-)
+from .cache_utils import ( MOVIE_SESSIONS_CACHE_TTL, invalidate_movie_sessions_cache, invalidate_session_seat_map_cache, movie_sessions_cache_key, SEAT_MAP_CACHE_TTL, session_seat_map_cache_key,)
 from .serializers.session_serializer import SessionListSerializer
 from .serializers.seat_serializer import SeatStatusSerializer
 from .serializers.ticket_serializer import TicketCreateSerializer, MyTicketSerializer
@@ -24,20 +17,76 @@ from django.utils import timezone
 from cinema.tasks import send_ticket_confirmation_email
 
 
+SeatMapResponseSerializer = inline_serializer(
+    name="SeatMapResponse",
+    fields={
+        "session_id": serializers.IntegerField(),
+        "room": inline_serializer(
+            name="SeatMapRoom",
+            fields={
+                "id": serializers.IntegerField(),
+                "name": serializers.CharField(),
+            },
+        ),
+        "seats": SeatStatusSerializer(many=True),
+    },
+)
 
+SeatLockResponseSerializer = inline_serializer(
+    name="SeatLockResponse",
+    fields={
+        "status": serializers.CharField(),
+        "seat_id": serializers.IntegerField(),
+    },
+)
+
+TicketCreateResponseSerializer = inline_serializer(
+    name="TicketCreateResponse",
+    fields={
+        "status": serializers.CharField(),
+        "ticket_id": serializers.IntegerField(),
+    },
+)
+
+ErrorDetailSerializer = inline_serializer(
+    name="ErrorDetail",
+    fields={"detail": serializers.CharField()},
+)
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Cinema"],
+        summary="Listar sessões",
+        description="Retorna a lista paginada de todas as sessões cadastradas.",
+        responses=SessionListSerializer(many=True),
+    )
+)
 class SessionListCreateAPIView(ListAPIView):
     queryset = Session.objects.select_related("movie", "room").order_by("starts_at")
     permission_classes = [AllowAny]
     serializer_class = SessionListSerializer
 
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Cinema"],
+        summary="Listar sessões por filme",
+        description="Retorna sessões de um filme específico, ordenadas por data/hora.",
+        parameters=[
+            OpenApiParameter(
+                name="movie_id",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID do filme.",
+            )
+        ],
+        responses=SessionListSerializer(many=True),
+    )
+)
 class MovieSessionsAPIView(ListAPIView):
     serializer_class = SessionListSerializer
 
-    @extend_schema(
-        summary="Listar sessões por filme",
-        description="Retorna sessões de um filme ordenadas por data/hora",
-        responses=SessionListSerializer(many=True),
-    )
     def list(self, request, *args, **kwargs):
         movie_id = kwargs["movie_id"]
 
@@ -63,7 +112,27 @@ class MovieSessionsAPIView(ListAPIView):
             .order_by("starts_at")
         )
 
-@extend_schema(description="Return seat map with status (available|reserved|purchased)")
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Cinema"],
+        summary="Mapa de assentos da sessão",
+        description="Retorna o mapa de assentos com status `available`, `reserved` ou `purchased`.",
+        parameters=[
+            OpenApiParameter(
+                name="pk",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID da sessão.",
+            )
+        ],
+        responses={
+            200: OpenApiResponse(response=SeatMapResponseSerializer),
+            404: OpenApiResponse(response=ErrorDetailSerializer),
+        },
+    )
+)
 class SessionSeatMapAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -104,7 +173,75 @@ class SessionSeatMapAPIView(APIView):
         }
         cache.set(cache_key, payload, timeout=SEAT_MAP_CACHE_TTL)
         return Response(payload)
-    
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=["Cinema"],
+        summary="Reservar assento (lock)",
+        description="Cria um lock temporário de 10 minutos para o assento na sessão.",
+        request=None,
+        parameters=[
+            OpenApiParameter(
+                name="session_pk",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID da sessão.",
+            ),
+            OpenApiParameter(
+                name="seat_id",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID do assento.",
+            ),
+        ],
+        responses={
+            201: OpenApiResponse(
+                response=SeatLockResponseSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Reserva criada",
+                        value={"status": "reserved", "seat_id": 12},
+                        status_codes=["201"],
+                    )
+                ],
+            ),
+            400: OpenApiResponse(response=ErrorDetailSerializer),
+            401: OpenApiResponse(description="Não autenticado."),
+            409: OpenApiResponse(response=ErrorDetailSerializer),
+        },
+    ),
+    delete=extend_schema(
+        tags=["Cinema"],
+        summary="Liberar assento (unlock)",
+        description="Remove o lock do assento, desde que o usuário autenticado seja o dono da reserva.",
+        request=None,
+        parameters=[
+            OpenApiParameter(
+                name="session_pk",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID da sessão.",
+            ),
+            OpenApiParameter(
+                name="seat_id",
+                location=OpenApiParameter.PATH,
+                required=True,
+                type=int,
+                description="ID do assento.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(description="Lock removido com sucesso."),
+            401: OpenApiResponse(description="Não autenticado."),
+            403: OpenApiResponse(response=ErrorDetailSerializer),
+            404: OpenApiResponse(response=ErrorDetailSerializer),
+        },
+    ),
+)
 class SeatLockAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -165,12 +302,28 @@ class TicketCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
+        tags=["Cinema"],
+        summary="Finalizar compra (checkout)",
+        description=(
+            "Cria um ticket para um assento previamente reservado pelo próprio usuário "
+            "e dispara envio de e-mail de confirmação em background via Celery."
+        ),
         request=TicketCreateSerializer,
         responses={
-            201: dict,
-            400: dict,
-            403: dict,
-            409: dict,
+            201: OpenApiResponse(
+                response=TicketCreateResponseSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Compra concluída",
+                        value={"status": "success", "ticket_id": 42},
+                        status_codes=["201"],
+                    )
+                ],
+            ),
+            400: OpenApiResponse(response=ErrorDetailSerializer),
+            401: OpenApiResponse(description="Não autenticado."),
+            403: OpenApiResponse(response=ErrorDetailSerializer),
+            409: OpenApiResponse(response=ErrorDetailSerializer),
         },
     )
     def post(self, request):
@@ -223,6 +376,28 @@ class TicketCreateAPIView(APIView):
                 status=status.HTTP_409_CONFLICT
             )
 
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Cinema"],
+        summary="Listar meus ingressos",
+        description="Retorna ingressos do usuário autenticado com filtro opcional por escopo.",
+        parameters=[
+            OpenApiParameter(
+                name="scope",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=["all", "active", "history"],
+                description="Filtro de período dos ingressos. Padrão: `all`.",
+            )
+        ],
+        responses={
+            200: MyTicketSerializer(many=True),
+            401: OpenApiResponse(description="Não autenticado."),
+        },
+    )
+)
 class MyTicketsAPIView(ListAPIView):
     serializer_class = MyTicketSerializer
     permission_classes = [IsAuthenticated]
