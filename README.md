@@ -126,6 +126,26 @@ docker compose exec -T web python manage.py test movies -v 2
 docker compose exec -T web python manage.py test users -v 2
 ```
 
+## CI/CD (GitHub Actions)
+
+Pipeline configurado em [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml):
+
+- CI (`push`, `pull_request`, `workflow_dispatch`):
+	- sobe `postgres:15` e `redis:7`
+	- instala dependencias com Poetry
+	- roda `python manage.py check`
+	- valida migrations pendentes com `makemigrations --check --dry-run`
+	- roda testes (`python manage.py test -v 2`)
+
+- CD (somente `push` na `main`, apos CI passar):
+	- builda a imagem com o `Dockerfile`
+	- publica no GitHub Container Registry (GHCR)
+	- tags publicadas: `latest` e `sha-<commit>`
+
+Imagem publicada em:
+
+- `ghcr.io/<owner>/cinereserve`
+
 ## Sanity check de documentação
 
 Verifique se os endpoints de documentação sobem com status `200`:
