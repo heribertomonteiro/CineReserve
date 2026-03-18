@@ -1,6 +1,6 @@
 # CineReserve
 
-Repository: https://github.com/heribertomonteiro/CineReserve.git
+Observação: a criação de Filmes, Salas e Sessões deve ser feita via Django Admin (http://localhost:8000/admin/).
 
 API REST para reserva e emissao de ingressos do cinema "Cinepolis Natal".
 
@@ -65,7 +65,7 @@ Nao e necessario instalar Python localmente para rodar o projeto.
 ### 4.1 Clonar e entrar na pasta
 
 ```bash
-git clone [https://github.com/heribertomonteiro/CineReserve.git]
+git clone https://github.com/heribertomonteiro/CineReserve.git
 cd CineReserve
 ```
 
