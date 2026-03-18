@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 # cache melhor: primeiro só manifests
 COPY pyproject.toml poetry.lock /app/
+RUN poetry check --lock --no-ansi
 RUN poetry install --no-ansi --no-root
 
 # agora copia o projeto

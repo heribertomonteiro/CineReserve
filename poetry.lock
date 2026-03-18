@@ -229,6 +229,7 @@ description = "PostgreSQL database adapter for Python -- C optimisation distribu
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "implementation_name != \"pypy\""
 files = [
     {file = "psycopg_binary-3.3.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b3385b58b2fe408a13d084c14b8dcf468cd36cbbe774408250facc128f9fa75c"},
     {file = "psycopg_binary-3.3.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:1bef235a50a80f6aba05147002bc354559657cb6386dbd04d8e1c97d1d7cbe84"},
@@ -607,4 +608,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12, <4.0"
-content-hash = "b3fe79e59ca07cc37f5adaa2bac6aa45c8f4f34956c1455345df3e16ac980633"
+content-hash = "2e9ff160591d81953cf73ebdbc58bdcb50a321fff3e55ffa60ebb26c77dc6184"
