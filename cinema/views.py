@@ -212,8 +212,6 @@ class TicketCreateAPIView(APIView):
 
                 transaction.on_commit(lambda: send_ticket_confirmation_email.delay(ticket.id))
 
-
-
                 return Response(
                     {"status": "success", "ticket_id": ticket.id},
                     status=status.HTTP_201_CREATED
