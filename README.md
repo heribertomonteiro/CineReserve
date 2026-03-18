@@ -1,5 +1,7 @@
 # CineReserve
 
+Repository: https://github.com/heribertomonteiro/CineReserve.git
+
 API REST para reserva e emissao de ingressos do cinema "Cinepolis Natal".
 
 Stack principal:
@@ -63,7 +65,7 @@ Nao e necessario instalar Python localmente para rodar o projeto.
 ### 4.1 Clonar e entrar na pasta
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
+git clone [https://github.com/heribertomonteiro/CineReserve.git]
 cd CineReserve
 ```
 
@@ -83,6 +85,7 @@ cp .env.example .env
 
 ### 4.3 Gerar `DJANGO_SECRET_KEY`
 
+(**ESSE PASSO É OPCIONAL, APENAS PARA GERAR UMA SECRET KEY FORTE**)
 Windows (PowerShell):
 
 ```powershell
@@ -95,7 +98,7 @@ Linux/macOS (bash):
 docker compose run --rm web python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 ```
 
-Cole o valor gerado no `.env` em `DJANGO_SECRET_KEY`.
+**Cole o valor gerado no `.env` em `DJANGO_SECRET_KEY`.**
 
 ### 4.4 Subir stack completa
 
