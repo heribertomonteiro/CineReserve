@@ -44,6 +44,8 @@ jobs:
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
       DATABASE_URL: postgresql://postgres:postgres456@localhost:5432/cinereserve
       REDIS_URL: redis://localhost:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "1"
+      CELERY_TASK_EAGER_PROPAGATES: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

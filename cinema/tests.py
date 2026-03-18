@@ -3,6 +3,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+from unittest.mock import patch
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -101,6 +102,22 @@ class CinemaApiTests(APITestCase):
 			Ticket.objects.filter(session=self.session, seat=self.seat, user=self.user).exists()
 		)
 		self.assertIsNone(cache.get(self._lock_key()))
+
+	@patch("cinema.views.send_ticket_confirmation_email.delay")
+	def test_checkout_enqueues_confirmation_email(self, delay_mock):
+		cache.set(self._lock_key(), str(self.user.id), timeout=600)
+		self.client.force_authenticate(user=self.user)
+		checkout_url = reverse("ticket-create")
+
+		with self.captureOnCommitCallbacks(execute=True):
+			response = self.client.post(
+				checkout_url,
+				{"session_id": self.session.id, "seat_id": self.seat.id},
+				format="json",
+			)
+
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		delay_mock.assert_called_once_with(response.data["ticket_id"])
 
 	def test_checkout_fails_without_reservation(self):
 		self.client.force_authenticate(user=self.user)
@@ -295,3 +312,18 @@ class CinemaApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.data["count"], 1)
+
+	@patch("cinema.tasks.send_mail")
+	def test_send_ticket_confirmation_email_sends_expected_payload(self, send_mail_mock):
+		ticket = Ticket.objects.create(user=self.user, session=self.session, seat=self.seat)
+
+		from cinema.tasks import send_ticket_confirmation_email
+
+		send_ticket_confirmation_email.run(ticket.id)
+
+		send_mail_mock.assert_called_once()
+		kwargs = send_mail_mock.call_args.kwargs
+		self.assertEqual(kwargs["recipient_list"], [self.user.email])
+		self.assertEqual(kwargs["from_email"], "noreply@cinereserve.local")
+		self.assertIn("Filme Teste", kwargs["message"])
+		self.assertIn("A1", kwargs["message"])

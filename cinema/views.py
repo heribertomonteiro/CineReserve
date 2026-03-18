@@ -21,6 +21,9 @@ from .serializers.seat_serializer import SeatStatusSerializer
 from .serializers.ticket_serializer import TicketCreateSerializer, MyTicketSerializer
 from django.utils import timezone
 
+from cinema.tasks import send_ticket_confirmation_email
+
+
 
 class SessionListCreateAPIView(ListAPIView):
     queryset = Session.objects.select_related("movie", "room").order_by("starts_at")
@@ -206,6 +209,10 @@ class TicketCreateAPIView(APIView):
 
                 cache.delete(lock_key)
                 invalidate_session_seat_map_cache(session.id)
+
+                transaction.on_commit(lambda: send_ticket_confirmation_email.delay(ticket.id))
+
+
 
                 return Response(
                     {"status": "success", "ticket_id": ticket.id},

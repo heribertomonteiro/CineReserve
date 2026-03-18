@@ -67,3 +67,8 @@ $RECYCLE.BIN/
 # --- Django collectstatic / compiled assets ---
 *.pot
 *.mo
+
+# --- Celery Beat local artifacts ---
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
