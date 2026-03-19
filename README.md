@@ -1,6 +1,6 @@
 # CineReserve
 
-Observação: a criação de Filmes, Salas e Sessões deve ser feita via Django Admin (http://localhost:8000/admin/).
+Observação: a criação de Filmes, Salas, Assentos e Sessões podem ser feita via Django Admin (http://localhost:8000/admin/).
 
 API REST para reserva e emissao de ingressos do cinema "Cinepolis Natal".
 
@@ -10,13 +10,13 @@ Stack principal:
 - JWT (Simple JWT)
 - PostgreSQL
 - Redis (cache e lock distribuido)
-- Celery + Celery Beat (tarefas assincronas)
+- Celery (tarefas assincronas)
 - Poetry
 - Docker + Docker Compose
 - Swagger (drf-spectacular)
-- GitHub Actions (CI/CD)
+- GitHub Actions (CI)
 
-## 1. Visao Geral da Solucao
+## 1. Visao Geral da Solução
 
 Este projeto implementa os casos de uso principais de uma bilheteria:
 - Cadastro e login com JWT.
@@ -31,24 +31,23 @@ Tambem inclui:
 - Cache para endpoints de leitura de alta demanda.
 - Rate limit para reduzir abuso.
 - Task assincrona para e-mail de confirmacao de ticket.
-- Pipeline CI/CD basico com testes automatizados.
+- Pipeline CI basico com testes automatizados.
 
-## 2. Arquitetura (alto nivel)
+## 2. Arquitetura
 
 Servicos no Docker Compose:
 - `web`: API Django.
 - `db`: PostgreSQL.
 - `redis`: cache, lock e broker/backend do Celery.
 - `celery_worker`: executa tarefas assincronas.
-- `celery_beat`: agenda tarefas periodicas via scheduler em banco (`django-celery-beat`).
 
 Fluxo resumido de reserva:
 1. Usuario faz lock do assento (`cache.add`) por 600s.
 2. Outro usuario nao consegue reservar o mesmo assento enquanto lock existir.
 3. No checkout, a API valida o owner do lock.
-4. Ticket e criado em transacao atomica.
-5. Lock e removido.
-6. Apos commit, task Celery envia e-mail de confirmacao.
+4. Ticket é criado em transacao atomica.
+5. Lock é removido.
+6. Após commit, task Celery envia e-mail de confirmacao.
 
 ## 3. Requisitos
 
@@ -58,9 +57,9 @@ Obrigatorio:
 Opcional:
 - `curl` ou Postman para testar endpoints.
 
-Nao e necessario instalar Python localmente para rodar o projeto.
+Não e necessario instalar Python localmente para rodar o projeto.
 
-## 4. Setup Plug-and-Play (primeira execucao)
+## 4. Setup Plug-and-Play
 
 ### 4.1 Clonar e entrar na pasta
 
@@ -85,7 +84,9 @@ cp .env.example .env
 
 ### 4.3 Gerar `DJANGO_SECRET_KEY`
 
-(**ESSE PASSO É OPCIONAL, APENAS PARA GERAR UMA SECRET KEY FORTE**)
+(ESSE PASSO É OPCIONAL, APENAS PARA GERAR UMA SECRET KEY FORTE! Caso não queira gerar uma secret key aleatória é só botar a sua própia no arquivo .env)
+
+
 Windows (PowerShell):
 
 ```powershell
@@ -114,7 +115,7 @@ docker compose ps
 
 Esperado:
 - `db` e `redis` com status healthy.
-- `web`, `celery_worker` e `celery_beat` iniciados.
+- `web` e `celery_worker` iniciados.
 
 ### 4.6 Criar superusuario (admin)
 
@@ -122,75 +123,26 @@ Esperado:
 docker compose exec web python manage.py createsuperuser
 ```
 
-## 5. Variaveis de Ambiente
+### 4.7 Popular banco com dados iniciais (cinema, salas e assentos)
 
-Exemplo de `.env` para desenvolvimento:
-
-```dotenv
-DJANGO_SECRET_KEY=REPLACE_ME
-DJANGO_DEBUG=1
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-
-POSTGRES_DB=cinereserve
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres456
-
-DATABASE_URL=postgresql://postgres:postgres456@db:5432/cinereserve
-
-REDIS_URL=redis://redis:6379/0
-
-CELERY_BROKER_URL=redis://redis:6379/1
-CELERY_RESULT_BACKEND=redis://redis:6379/1
-
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DEFAULT_FROM_EMAIL=noreply@cinereserve.local
+```bash
+docker compose exec web python manage.py seed_cinema
 ```
 
-Notas:
-- `REDIS_URL` (db 0): cache e locks.
-- `CELERY_*` (db 1): filas/resultados Celery.
-- Em dev, e-mail vai para log do worker (`console backend`).
+Isso cria uma sala chamada "Sala 1" com assentos A1 até J10 (100 assentos no total).
 
-## 6. URLs Uteis
+## 5. URLs Uteis
 
 - Admin: http://localhost:8000/admin/
 - Swagger: http://localhost:8000/api/docs/
 
-## 7. Operacao no Dia a Dia
-
-Subir:
+## 6. Verificação de email de confirmação de compra de assento
 
 ```bash
-docker compose up -d --build
+docker compose logs --tail=200 celery_worker
 ```
 
-Parar:
-
-```bash
-docker compose down
-```
-
-Parar e remover volumes (reset total local):
-
-```bash
-docker compose down -v
-```
-
-Logs:
-
-```bash
-docker compose logs -f --tail=200 web
-docker compose logs -f --tail=200 celery_worker
-docker compose logs -f --tail=200 celery_beat
-```
-
-Executar comando Django:
-
-```bash
-docker compose exec web python manage.py <comando>
-```
-
-## 8. Testes
+## 7. Testes
 
 Check geral:
 
@@ -212,7 +164,7 @@ docker compose exec -T web python manage.py test movies -v 2
 docker compose exec -T web python manage.py test users -v 2
 ```
 
-## 9. Como o Assento e Protegido (Redis Lock)
+## 8. Como o Assento e Protegido (Redis Lock)
 
 - Chave de lock: `lock:session:{session_id}:seat:{seat_id}`.
 - Aquisição: `cache.add(..., timeout=600)`.
@@ -234,15 +186,12 @@ Exemplo de verificacao:
 docker compose logs --tail=200 celery_worker
 ```
 
-## 11. CI/CD
+## 11. CI
 
-Pipeline em `.github/workflows/ci-cd.yml`:
+Pipeline em `.github/workflows/ci.yml`:
 
 CI:
 - sobe Postgres e Redis como services;
 - instala dependencias com Poetry;
 - executa `check`, valida migrations e roda testes.
-
-CD (push em `main`):
-- build e push da imagem para GHCR.
 

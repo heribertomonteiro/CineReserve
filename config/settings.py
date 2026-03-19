@@ -50,8 +50,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'movies',
     'users',
-    'cinema',
-    'django_celery_beat'
+    'cinema'
 ]
 
 MIDDLEWARE = [

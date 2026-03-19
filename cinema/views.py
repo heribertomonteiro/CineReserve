@@ -13,9 +13,7 @@ from .serializers.session_serializer import SessionListSerializer
 from .serializers.seat_serializer import SeatStatusSerializer
 from .serializers.ticket_serializer import TicketCreateSerializer, MyTicketSerializer
 from django.utils import timezone
-
 from cinema.tasks import send_ticket_confirmation_email
-
 
 SeatMapResponseSerializer = inline_serializer(
     name="SeatMapResponse",
