@@ -116,15 +116,6 @@ class MovieSessionsAPIView(ListAPIView):
         tags=["Cinema"],
         summary="Mapa de assentos da sessão",
         description="Retorna o mapa de assentos com status `available`, `reserved` ou `purchased`.",
-        parameters=[
-            OpenApiParameter(
-                name="pk",
-                location=OpenApiParameter.PATH,
-                required=True,
-                type=int,
-                description="ID da sessão.",
-            )
-        ],
         responses={
             200: OpenApiResponse(response=SeatMapResponseSerializer),
             404: OpenApiResponse(response=ErrorDetailSerializer),
