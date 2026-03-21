@@ -1,8 +1,21 @@
 # CineReserve
 
-Observação: a criação de Filmes, Salas, Assentos e Sessões podem ser feita via Django Admin (http://localhost:8000/admin/).
+Projeto Backend: API REST para reserva e emissão de ingressos
 
-API REST para reserva e emissao de ingressos do cinema "Cinepolis Natal".
+---
+
+> [!NOTE]
+>Este é um projeto de backend que expõe uma API REST para gerenciamento de filmes, sessões, assentos e emissão de ingressos do cinema "Cinepolis Natal". A API é implementada com Django e Django REST Framework (DRF), não contém frontend integrado. Para explorar e testar os endpoints, utilize a documentação interativa Swagger disponível ao subir a aplicação.
+
+> Para subir a aplicação e popular o banco de dados, basta seguir o item 4 (Setup plug-and-play)
+
+> Observação: a criação de Filmes, Salas, Assentos e Sessões podem ser feita, além do script, via Django Admin (http://localhost:8000/admin/).
+
+> Documentação da API (Swagger): http://localhost:8000/api/docs/  
+
+---
+
+## API REST para reserva e emissao de ingressos
 
 Stack principal:
 - Python 3.13
@@ -27,7 +40,7 @@ Este projeto implementa os casos de uso principais de uma bilheteria:
 - Checkout que transforma reserva temporaria em ticket definitivo no banco.
 - Portal "Meus Ingressos" com filtros `active` e `history`.
 
-Tambem inclui:
+Também inclui:
 - Cache para endpoints de leitura de alta demanda.
 - Rate limit para reduzir abuso.
 - Task assincrona para e-mail de confirmacao de ticket.
@@ -164,7 +177,7 @@ docker compose exec -T web python manage.py test movies -v 2
 docker compose exec -T web python manage.py test users -v 2
 ```
 
-## 8. Como o Assento e Protegido (Redis Lock)
+## 8. Como o Assento é Protegido (Redis Lock)
 
 - Chave de lock: `lock:session:{session_id}:seat:{seat_id}`.
 - Aquisição: `cache.add(..., timeout=600)`.
