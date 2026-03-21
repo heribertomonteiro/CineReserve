@@ -254,7 +254,7 @@ class SeatLockAPIView(APIView):
             invalidate_session_seat_map_cache(session.id)
             return Response(
                 {"detail": "Seat already purchased"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_409_CONFLICT
             )
 
         invalidate_session_seat_map_cache(session.id)
