@@ -5,7 +5,7 @@ Projeto Backend: API REST para reserva e emissão de ingressos
 ---
 
 > [!NOTE]
->Este é um projeto de backend que expõe uma API REST para gerenciamento de filmes, sessões, assentos e emissão de ingressos do cinema "Cinepolis Natal". A API é implementada com Django e Django REST Framework (DRF), não contém frontend integrado. Para explorar e testar os endpoints, utilize a documentação interativa Swagger disponível ao subir a aplicação.
+>Este é um projeto de backend que expõe uma API REST para gerenciamento de filmes, sessões, assentos e emissão de ingressos do cinema. A API é implementada com Django e Django REST Framework (DRF), não contém frontend integrado. Para explorar e testar os endpoints, utilize a documentação interativa Swagger disponível ao subir a aplicação.
 
 > Para subir a aplicação e popular o banco de dados, basta seguir o item 4 (Setup plug-and-play)
 
